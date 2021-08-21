@@ -38,3 +38,4 @@ class QueryResponse(BaseModel):
     results_count: Optional[int] = None
     results: Optional[List[Any]] = None
     error: Optional[str] = None
+    message: Optional[str]
