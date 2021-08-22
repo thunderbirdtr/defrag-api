@@ -1,13 +1,13 @@
 import asyncio
+from defrag import app
 from datetime import datetime, timedelta, timezone
 from defrag.modules.helpers.data_manipulation import find_first
 from defrag.modules.helpers.sync_utils import as_async
-from pottery.deque import RedisDeque
 from defrag.modules.db.redis import RedisPool
-from defrag import app
 from defrag.modules.helpers import Query, QueryResponse
 from defrag.modules.helpers.dispatcher import Dispatcher, Dispatchable, Notification, TelegramNotification
-from typing import List, Optional, Tuple, Union
+from pottery.deque import RedisDeque
+from typing import List, Optional, Tuple
 from dateutil import rrule
 from pydantic.main import BaseModel
 from defrag.modules.helpers.requests import Req
