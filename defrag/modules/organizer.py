@@ -247,6 +247,18 @@ class Calendar:
             assemble_to_datetime(m.meeting_date, m.meeting_time_start)), notification=TelegramNotification(body=m.meeting_information)) for m in meetings]
         await asyncio.gather(*[Dispatcher.put(m) for m in to_schedule])
 
+    @staticmethod
+    async def render(start_str: str, end_str: str) -> List[CustomMeeting]:
+        format = date_format + time_format
+        start, end = datetime.strptime(
+            start_str, format), datetime.strptime(end_str, format)
+
+        def gen_events():
+            for event in Calendar.container:
+                event_start = datetime.strptime(event["start"], format)
+                if start <= event_start and event_start <= end:
+                    yield event
+        return [] if not Calendar.container else [e for e in gen_events()]
 
 # --------
 # HANDLERS
@@ -260,21 +272,28 @@ async def post_reminder(reminder: PostReminder) -> QueryResponse:
 
 
 @app.post(f"/{__MOD_NAME__}/add_fedocal_meetings/")
-async def post_fedocal_meetings(meetings: List[FedocalMeeting], user_deltas: UserDeltas, notification: Notification):
+async def post_fedocal_meetings(meetings: List[FedocalMeeting], user_deltas: UserDeltas, notification: Notification) -> QueryResponse:
     query = Query(service=__MOD_NAME__)
     await Calendar.add_all_new_meetings(meetings=[meeting_from_fedocal(m) for m in meetings], n=notification, d=user_deltas)
     return QueryResponse(query=query, message="Meeting(s) added and reminder(s) set!")
 
 
 @app.post(f"/{__MOD_NAME__}/add_meetings/")
-async def post_meetings(meetings: List[CustomMeeting], user_deltas: UserDeltas, notification: Notification):
+async def post_meetings(meetings: List[CustomMeeting], user_deltas: UserDeltas, notification: Notification) -> QueryResponse:
     query = Query(service=__MOD_NAME__)
     await Calendar.add_all_new_meetings(meetings=meetings, n=notification, d=user_deltas)
     return QueryResponse(query=query, message="Meeting(s) added and reminder(s) set!")
 
 
 @app.post(f"/{__MOD_NAME__}/cancel_meeting/")
-async def post_cancel_meeting(meeting_id: int):
+async def post_cancel_meeting(meeting_id: int) -> QueryResponse:
     query = Query(service=__MOD_NAME__)
     await Calendar.remove(meeting_id)
     return QueryResponse(query=query, message="Meeting and reminder(s) cancelled.")
+
+
+@app.get(f"/{__MOD_NAME__}/calendar/")
+async def get_calendar(start: str, end: str) -> QueryResponse:
+    query = Query(service=__MOD_NAME__)
+    results = await Calendar.render(start_str=start, end_str=end)
+    return QueryResponse(query=query, results=results, results_count=len(results))
