@@ -3,8 +3,6 @@ from datetime import datetime, timedelta, timezone
 from defrag.modules.helpers.data_manipulation import find_first
 from defrag.modules.helpers.sync_utils import as_async
 from pottery.deque import RedisDeque
-
-from functools import reduce
 from defrag.modules.db.redis import RedisPool
 from defrag import app
 from defrag.modules.helpers import Query, QueryResponse
@@ -14,7 +12,7 @@ from dateutil import rrule
 from pydantic.main import BaseModel
 from defrag.modules.helpers.requests import Req
 
-__MOD_NAME__ = "time_manager"
+__MOD_NAME__ = "organizer"
 
 fedocal_endpoint = ""
 poll_interval = timedelta(days=15)
@@ -255,21 +253,28 @@ class Calendar:
 # --------
 
 
-@app.post(f"/{__MOD_NAME__}/reminders/add/")
+@app.post(f"/{__MOD_NAME__}/add_reminder/")
 async def post_reminder(reminder: PostReminder) -> QueryResponse:
     await set_reminder(reminder.tgt, reminder.notification, reminder.deltas)
     return QueryResponse(query=Query(service=__MOD_NAME__), message="Reminder(s) set!")
 
 
-@app.post(f"/{__MOD_NAME__}/meetings/add_fedocal_meetings/")
+@app.post(f"/{__MOD_NAME__}/add_fedocal_meetings/")
 async def post_fedocal_meetings(meetings: List[FedocalMeeting], user_deltas: UserDeltas, notification: Notification):
     query = Query(service=__MOD_NAME__)
     await Calendar.add_all_new_meetings(meetings=[meeting_from_fedocal(m) for m in meetings], n=notification, d=user_deltas)
     return QueryResponse(query=query, message="Meeting(s) added and reminder(s) set!")
 
 
-@app.post(f"/{__MOD_NAME__}/meetings/add/")
+@app.post(f"/{__MOD_NAME__}/add_meetings/")
 async def post_meetings(meetings: List[CustomMeeting], user_deltas: UserDeltas, notification: Notification):
     query = Query(service=__MOD_NAME__)
     await Calendar.add_all_new_meetings(meetings=meetings, n=notification, d=user_deltas)
     return QueryResponse(query=query, message="Meeting(s) added and reminder(s) set!")
+
+
+@app.post(f"/{__MOD_NAME__}/cancel_meeting/")
+async def post_cancel_meeting(meeting_id: int):
+    query = Query(service=__MOD_NAME__)
+    await Calendar.remove(meeting_id)
+    return QueryResponse(query=query, message="Meeting and reminder(s) cancelled.")
